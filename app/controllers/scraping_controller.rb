@@ -9,6 +9,11 @@ class ScrapingController < ApplicationController
   end
 
   def create
+    unless params[:url].present?
+      Rails.logger.error 'URL is missing'
+      return render json: { errors: ['URL is missing'] }, status: :unprocessable_entity
+    end
+
     url = params[:url].gsub('comprar', 'api/detail/car') + '&pandora=true'
     task_id = params[:task_id]
     user_id = params[:user_id]
@@ -17,6 +22,8 @@ class ScrapingController < ApplicationController
 
     begin
       data = fetch_data_from_api(url)
+
+      Rails.logger.info "Fetched data: #{data.inspect}"
 
       scraping_result = ScrapingResult.new(
         task_id:,
@@ -36,15 +43,15 @@ class ScrapingController < ApplicationController
       )
 
       if scraping_result.save
-        puts 'Scraping result saved successfully'
+        Rails.logger.info 'Scraping result saved successfully'
         notify(task_id, user_id, data[:city], data[:year], data[:km])
         render json: { status: 'Scraping completed successfully', data: scraping_result }, status: :created
       else
-        puts "Failed to save scraping result: #{scraping_result.errors.full_messages}"
+        Rails.logger.error "Failed to save scraping result: #{scraping_result.errors.full_messages}"
         render json: { errors: scraping_result.errors.full_messages }, status: :unprocessable_entity
       end
     rescue StandardError => e
-      puts "Error: #{e.message}"
+      Rails.logger.error "Error: #{e.message}\n#{e.backtrace.join("\n")}"
       render json: { status: 500, error: 'Internal Server Error', message: e.message }, status: :internal_server_error
     end
   end
