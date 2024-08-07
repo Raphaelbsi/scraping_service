@@ -104,7 +104,7 @@ class ScrapingController < ApplicationController
 
   def notify(task_id, user_id, city, year, km)
     notification_details = "Scraping completed for task #{task_id}: City - #{city}, Year - #{year}, KM - #{km}"
-    HTTParty.post('http://notification_service:3000/notifications',
+    HTTParty.post(ENV['NOTIFICATION_SERVICE_URL'],
                   body: { notification: { task_id:, user_id:,
                                           details: notification_details } }.to_json,
                   headers: { 'Content-Type' => 'application/json' })
